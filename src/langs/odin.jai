@@ -22,10 +22,11 @@ highlight_odin_syntax :: (using buffer: *Buffer) {
             if token.punctuation == .l_paren {
                 if prev.type == .identifier {
                     // Handle "func(" but not ":Type(" or "^Type(" or "$Type(" or "]Type("
-                    if      before_prev.type == .operation || before_prev.type == .punctuation {}
-                    else if before_prev.type == .operation && before_prev.operation != .colon {}
-                    else if before_prev.type == .punctuation && (before_prev.punctuation != .caret && before_prev.punctuation != .dollar && before_prev.punctuation != .r_bracket) {}
-                    else {
+                    if before_prev.type == .operation && before_prev.operation == .colon {
+                        // Do nothing.
+                    } else if before_prev.type == .punctuation && (before_prev.punctuation == .caret || before_prev.punctuation == .dollar || before_prev.punctuation == .r_bracket) {
+                        // Do nothing.
+                    } else {
                         memset(colors.data + prev.start, xx Code_Color.FUNCTION, prev.len);
                     }
                 }
@@ -106,7 +107,7 @@ tokenize_odin_for_indentation :: (using buffer: Buffer) -> [] Indentation_Token 
 get_tokenizer :: (using buffer: Buffer) -> Tokenizer {
     tokenizer: Tokenizer;
 
-    tokenizer.buf   = to_string(bytes);
+    tokenizer.buf   = cast(string) bytes;
     tokenizer.max_t = bytes.data + bytes.count;
     tokenizer.t     = bytes.data;
 
@@ -649,7 +650,7 @@ read_identifier_string_tmp :: (using tokenizer: *Tokenizer) -> string /* temp */
     }
 
     if t >= max_t then t = max_t;
-    return to_string(identifier);
+    return cast(string) identifier;
 }
 
 Tokenizer :: struct {

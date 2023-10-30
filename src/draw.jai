@@ -623,7 +623,7 @@ draw_editor :: (editor_id: s64, main_area: Rect, footer_height: float, ui_id: Ui
             if selected_text.count > 2 && !is_all_whitespace(selected_text) {
                 search_func: (s: string, substring: string, start_index := 0) -> s64;
                 search_func = ifx editor.search_whole_words then find_index_from_left_whole_word else find_index_from_left;
-                buffer_str := to_string(buffer.bytes);
+                buffer_str := cast(string) buffer.bytes;
 
                 cursor_offsets: [..] s32;
                 cursor_offsets.allocator = temp;
@@ -947,7 +947,7 @@ draw_editor :: (editor_id: s64, main_area: Rect, footer_height: float, ui_id: Ui
         for line_num : visible_lines_start .. visible_lines_end {
             line_start := get_line_start_offset(editor, buffer, line_num);
             length     := get_line_start_offset(editor, buffer, line_num+1) - line_start;
-            line := to_string(array_view(buffer.bytes, line_start, length));
+            line := cast(string) array_view(buffer.bytes, line_start, length);
             tab_spaces := 0;
             line, tab_spaces = advance_by_chars  (line, hidden_chars_on_the_left);
             line = take_first_n_chars(line, max_chars_horizontally);
@@ -1270,7 +1270,7 @@ draw_editor :: (editor_id: s64, main_area: Rect, footer_height: float, ui_id: Ui
                         }
                     }
                     if char_offset > 0 {
-                        line_str := to_string(array_view(buffer.bytes, line_start, line_range.end));
+                        line_str := cast(string) array_view(buffer.bytes, line_start, line_range.end);
                         byte_offset = slice_chars(line_str, 0, xx char_offset).count;
                     }
 
@@ -1507,7 +1507,7 @@ draw_open_file_dialog :: () {
 
     if ui.active != .none && ui.active != ui_id && !is_child(ui.active, ui_id) {
         // Close the dialog on clicks elsewhere
-        hide_open_file_dialog();
+        hide_open_file_dialog(manual = true);
         return;
     }
 
@@ -1553,9 +1553,10 @@ draw_open_file_dialog :: () {
     } else {
         label: string;
         if mode == {
-            case .navigate;     label = ifx !path_chunks then " Navigate to file" else "";
-            case .save;         label = " Choose where to save the file";
-            case .save_as;      label = " Choose where to save the file";
+            case .navigate;
+                label = ifx !path_chunks then " Navigate to file" else "";
+            case .save;
+                label = tprint(" Choose where to save '%'", get_buffer_name(*open_buffers[buffer_id_to_save]));
         }
 
         half_padding := floor(padding / 2);
@@ -1737,7 +1738,11 @@ draw_open_file_dialog :: () {
 
             // Draw name
             pen.x += xx font_icons.em_width + padding * 1.5;
-            width = xx Simp.draw_text_with_highlights(font_ui, xx pen.x, xx pen.y, entry.entry_name, entry.name_highlights, color = name_color, highlight_color = Colors.LETTER_HIGHLIGHT);
+            if entry.type != .save {
+                width = xx Simp.draw_text_with_highlights(font_ui, xx pen.x, xx pen.y, entry.entry_name, entry.name_highlights, color = name_color, highlight_color = Colors.LETTER_HIGHLIGHT);
+            } else {
+                width = xx Simp.draw_text(font_ui, xx pen.x, xx pen.y, entry.entry_name, color = name_color);
+            }
 
             if entry.flags & .MODIFIED_ON_DISK {
                 pen.x += width + padding;
@@ -2615,7 +2620,7 @@ draw_finder :: () {
                     }
                 }
                 if char_offset > 0 {
-                    line_str := to_string(array_view(buffer.bytes, line_start, line_range.end));
+                    line_str := cast(string) array_view(buffer.bytes, line_start, line_range.end);
                     byte_offset = slice_chars(line_str, 0, xx char_offset).count;
                 }
 
@@ -2805,7 +2810,7 @@ draw_text_input :: (using input: *Text_Input, rect_: Rect, ui_id: Ui_Id, active 
 
     input_rect = shrink(input_rect, padding);
 
-    input_text := to_string(text);
+    input_text := cast(string) text;
     cursor_width := 2 * dpi_scale;
 
     // Maybe set cursor on mouse click
