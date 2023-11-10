@@ -164,6 +164,11 @@ load_and_merge_config :: (file_path: string, into: Config, hash: *u64) -> succes
         return false, false, false;
     }
 
+    // Maybe update hash if changed
+    new_hash := calculate_hash(to_bytes(file_data));
+    changed := new_hash != <<hash;
+    if changed then <<hash = new_hash;
+
     parsed_config, success_parse, error_msg, warnings := parse_config(file_path, file_path, file_data);
     if !success_parse {
         if !error_msg assert(false, "No error message on a config error. This is a bug.");
@@ -175,11 +180,6 @@ load_and_merge_config :: (file_path: string, into: Config, hash: *u64) -> succes
         add_user_warning(tprint("Config file % loaded with warnings", file_path), dismiss_in_seconds = 60);
         for warnings add_user_error(it, dismiss_in_seconds = 60);
     }
-
-    // Maybe update hash if changed
-    new_hash := calculate_hash(to_bytes(file_data));
-    changed := new_hash != <<hash;
-    if changed then <<hash = new_hash;
 
     // Merge configs
     config = into;
@@ -328,6 +328,7 @@ Config :: struct {
     settings:  Settings;
     style:     Style;
     colors:    Color_Values;
+    build:     Build_Config;
     platform:  Platform_Config;
 }
 
@@ -387,12 +388,27 @@ Style :: struct {
     font_size := -1;
 }
 
-style: Style;
+Build_Config :: struct {
+    commands: [..] Command;
+    defaults: Command;
 
-Setting :: struct {
-    name: string;
-    type: enum { boolean; integer; };
+    Command :: struct {
+        name:                   string;
+
+        build_command:          string;
+        build_working_dir:      string;
+
+        run_command:            string;
+        run_working_dir:        string;
+
+        error_regex:            string;
+        auto_jump_to_error:     bool;
+        open_panel:             bool;
+        close_panel_on_success: bool;
+    }
 }
+
+style: Style;
 
 DEFAULT_CONFIG_FILE_DATA  :: #run read_entire_file(tprint("config/%", DEFAULT_CONFIG_NAME));
 EXAMPLE_PROJECT_FILE_DATA :: #run read_entire_file(tprint("config/%", EXAMPLE_PROJECT_CONFIG_NAME));
